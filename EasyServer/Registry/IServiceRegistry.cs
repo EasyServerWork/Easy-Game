@@ -12,6 +12,9 @@ public enum EventType
 
 public class RegistryConfig
 {
+    
+    public required string Scheme { get; set; }
+    
     /// <summary>
     /// 连接字符串
     /// </summary>
@@ -26,6 +29,54 @@ public class RegistryConfig
     /// 监听的key前缀
     /// </summary>
     public required string[] Prefixs { get; set; }
+    
+    
+    /// <summary>
+    /// 静态方法，根据URI字符串构建RegistryConfig对象
+    /// </summary>
+    /// <param name="uriString">服务使用的URI</param>
+    /// <returns>RegistryConfig对象</returns>
+    public static RegistryConfig CreateFromUri(string uriString)
+    {
+        // 手动解析URI字符串
+        int schemeEndIndex = uriString.IndexOf("://");
+        if (schemeEndIndex == -1)
+        {
+            throw new ArgumentException("Invalid URI");
+        }
+
+        string scheme = uriString.Substring(0, schemeEndIndex);
+        string remainingUri = uriString.Substring(schemeEndIndex + 3);
+
+        int queryStartIndex = remainingUri.IndexOf('?');
+        string hostAndPath = queryStartIndex == -1 ? remainingUri : remainingUri.Substring(0, queryStartIndex);
+        string queryString = queryStartIndex == -1 ? string.Empty : remainingUri.Substring(queryStartIndex + 1);
+
+        var queryParameters = queryString.Split('&')
+            .Where(param => !string.IsNullOrEmpty(param))
+            .Select(param => param.Split('='))
+            .ToDictionary(parts => parts[0], parts => parts.Length > 1 ? parts[1] : string.Empty);
+
+        bool isSecure = false;
+        if (queryParameters.TryGetValue("secure", out string secureValue))
+        {
+            bool.TryParse(secureValue, out isSecure);
+        }
+
+        string[] prefixs = Array.Empty<string>();
+        if (queryParameters.TryGetValue("prefixs", out string prefixsValue))
+        {
+            prefixs = prefixsValue.Split(',');
+        }
+
+        return new RegistryConfig
+        {
+            Scheme = scheme,
+            ConnectionString = hostAndPath,
+            IsSecure = isSecure,
+            Prefixs = prefixs
+        };
+    }
 }
 
 
@@ -87,9 +138,12 @@ public interface IServiceRegistry
     /// 添加监听器
     /// </summary>
     /// <param name="listener"></param>
-    public void AddListener(IServiceListener listener);
-    public bool RemoveListener(IServiceListener listener);
-    public void RemoveAllListener();
+    public void AddListener(IServiceListener? listener);
+    
+    
+    // 从实践来看，移除的方法没必要
+    // public bool RemoveListener(IServiceListener listener);
+    // public void RemoveAllListener();
     
     /// <summary>
     /// 注册一个服务 
@@ -112,9 +166,10 @@ public interface IServiceRegistry
     /// 启动服务注册
     /// </summary>
     /// <returns></returns>
-    public Task Start();
+    public Task Start(params IServiceListener[]? listeners);
     
     public Task Stop();
 }
 
-// public ServiceRegistryManager
+
+
