@@ -161,6 +161,16 @@ public interface IServiceRegistry
     /// <param name="func"></param>
     /// <returns></returns>
     public Task RegisterFuncAsync(string key, Func<string> func);
+
+
+    /// <summary>
+    /// 更新服务注册的内容
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public Task UpdateAsync(string key, string value);
+    
     
     /// <summary>
     /// 启动服务注册

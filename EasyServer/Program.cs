@@ -2,13 +2,16 @@
 
 using EasyServer.Registry;
 
-var config = RegistryConfig.CreateFromUri("etcd://127.0.0.1:2379?secure=false&prefixs=/u1,/u2");
+// var config = RegistryConfig.CreateFromUri("etcd://127.0.0.1:2379?secure=false&prefixs=/u1,/u2");
+//
+// var factory = new ServiceRegistryFactory();
 
-var factory = new ServiceRegistryFactory();
-var registry = factory.CreateRegistry(config);
+await ExampleUsage.RunExample();
 
-
-await registry.Start(null);
+// var registry = factory.CreateRegistry(config);
+//
+//
+// await registry.Start(null);
 
 Console.WriteLine("Hello, World!");
 

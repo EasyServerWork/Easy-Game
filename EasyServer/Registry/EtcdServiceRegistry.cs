@@ -64,17 +64,35 @@ public class EtcdServiceRegistry(RegistryConfig config) : IServiceRegistry
     }
     
 
-    public Task RegisterAsync(string key, string value)
+    public async Task RegisterAsync(string key, string value)
     {
-        throw new NotImplementedException();
+        long leaseId = GetLeaseId();
+        await Register(_rootCts, leaseId, key, value);
     }
 
-    public Task RegisterFuncAsync(string key, Func<string> func)
+    public async Task RegisterFuncAsync(string key, Func<string> func)
     {
-        throw new NotImplementedException();
+        var value = func();
+        var leaseId = GetLeaseId();
+            
+        // logger.Info("EtcdServiceRegistry RegisterFuncAsync, LeaseId: {0}, Key: {1}, Value: {2}", leaseId, key, value);
+        await Register(_rootCts, leaseId, key, value);
+
+        Dictionary<string, Func<string>> tmpDic = new(_funcs);
+        if (func != null)
+        {
+            tmpDic[key] = func;
+            _funcs = tmpDic;
+        }
     }
 
-    
+    public async Task UpdateAsync(string key, string value)
+    {
+        long leaseId = GetLeaseId();
+        await this.Update(_rootCts, leaseId, key, value);
+    }
+
+
     public async Task Start(params IServiceListener[]? listeners)
     {
         // 重新组织连接字符串，因为etcd的连接需要http，config.ConnectionString是一个用逗号隔开的ip:port的字符串
@@ -99,14 +117,33 @@ public class EtcdServiceRegistry(RegistryConfig config) : IServiceRegistry
         
         // 通知Start完成
         TaskCompletionSource<bool> notify = new TaskCompletionSource<bool>();
-
+        
+        _ = MainLoop(notify);
 
         await notify.Task;
     }
 
-    public Task Stop()
+    public async Task Stop()
     {
-        throw new NotImplementedException();
+        await _rootCts.CancelAsync();
+        // 取消租约,租约取消后相应的key也同时删除了.
+        for (int i = 0; i < 10; i++)
+        {
+            // 重试10次,如果成功就退出,失败重试
+            try
+            {
+                var req = new LeaseRevokeRequest
+                {
+                    ID = GetLeaseId()
+                };
+                await _client.LeaseRevokeAsync(req);
+                break;
+            }
+            catch (Exception e)
+            {
+                // logger.Error(e, e.Message);
+            }
+        }
     }
 
 
@@ -125,20 +162,23 @@ public class EtcdServiceRegistry(RegistryConfig config) : IServiceRegistry
 
                     // 构建租约
                     long leaseId = await BuildLeaseId(linkedCts);
+                    
+                    Console.WriteLine($"EtcdServiceRegistry LeaseId: {leaseId}");
+                    
                     // 组约绑定
                     await BindLeaseToCurrValues(linkedCts, leaseId);
                     // 同步节点数据
                     await Sync(linkedCts);
                     // 拉起监控
-                    Watch(linkedCts);
+                    _ = Watch(linkedCts);
                     // 拉起循环方法计算
-                    CalFuncs(linkedCts);
+                    _ = CalFuncs(linkedCts);
                         
                     // 通知Start方法完成, Start方法最终不会发生阻塞
                     notify.TrySetResult(true);
 
                     // 在不阻塞当前循环的情况下,进行避让还原
-                    BackOffReset(linkedCts);
+                    _ = BackOffReset(linkedCts);
                     // 进行续租, 每1/10的租约时间进行一次续租
                     // logger.Info("EtcdServiceRegistry LeaseKeepAlive Start....");
                     await _client.LeaseKeepAlive(linkedCts, leaseId, (LeaseTtl * 1000) / 10);
@@ -160,6 +200,51 @@ public class EtcdServiceRegistry(RegistryConfig config) : IServiceRegistry
         }
             
         // logger.Info("EtcdServiceRegistry Exit");
+    }
+    
+    
+    
+    /// <summary>
+    /// 注册一个key-value，并且绑定到租约
+    /// </summary>
+    /// <param name="cts"></param>
+    /// <param name="leaseId"></param>
+    /// <param name="key"></param>
+    /// <param name="value"></param>
+    /// <exception cref="Exception"></exception>
+    private async Task Register(CancellationTokenSource cts, long leaseId, string key, string value)
+    {
+        // 检查key是否已经存在
+        if (_currentValues.ContainsKey(key))
+        {
+            throw new Exception($"EtcdServiceRegistry Register Key already exists, key: {key}");
+        }
+            
+        if (!await CheckTtl(cts, leaseId))
+        {
+            throw new Exception($"EtcdServiceRegistry Register Lease be about to expire, LeaseId: {leaseId}, Key: {key}");
+        }
+            
+        // logger.Info("EtcdServiceRegistry Register, LeaseId: {0}, Key: {1}, Value: {2}", leaseId, key, value);
+
+        using (CancellationTokenSource linkedCts =
+               CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+        {
+            linkedCts.CancelAfter(TimeSpan.FromSeconds(TimeOut));
+
+            var putRequest = new PutRequest
+            {
+                Key = ByteString.CopyFromUtf8(key),
+                Value = ByteString.CopyFromUtf8(value),
+                Lease = leaseId
+            };
+
+            var resp = await _client.PutAsync(putRequest, cancellationToken: linkedCts.Token);
+
+            UpdateRevision(key, resp.Header.Revision);
+
+            _currentValues[key] = value;
+        }
     }
     
     
