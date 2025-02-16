@@ -13,6 +13,8 @@
 
     <ItemGroup>
       <PackageReference Include="dotnet-etcd" Version="7.2.0" />
+      <PackageReference Include="NLog" Version="5.4.0" />
+      <PackageReference Include="NLog.Extensions.Logging" Version="5.4.0" />
     </ItemGroup>
 
 </Project>
