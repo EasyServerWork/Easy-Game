@@ -6,13 +6,13 @@ using NLog.Targets.Wrappers;
 
 namespace EasyServer.Log;
 
-public class LoggerFactory
+public class LoggerFactory : ILoggerFactory
 {
     private LogConfig _config;
 
     public LogConfig Config { get => _config; }
     
-    private ILoggerFactory _loggerFactory;
+    private Microsoft.Extensions.Logging.ILoggerFactory _loggerFactory;
 
     public LoggerFactory(LogConfig config)
     {

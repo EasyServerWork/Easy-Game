@@ -8,11 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Core\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="dotnet-etcd" Version="7.2.0" />
+      <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.2" />
       <PackageReference Include="NLog" Version="5.4.0" />
       <PackageReference Include="NLog.Extensions.Logging" Version="5.4.0" />
     </ItemGroup>
