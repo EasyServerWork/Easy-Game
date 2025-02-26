@@ -16,14 +16,17 @@ public static class PlayerHandler
 {
     public static async Task Say(this PlayerModel actor, string str)
     { 
+        // return Task.FromResult("gggg");
         Console.WriteLine($"{actor.PlayerName} say: {str}");
     }
     
-    public static Task<string> SayHello(this PlayerModel actor, string greeting)
+    public static async Task<string> SayHello(this PlayerModel actor, string greeting)
     {
         Console.WriteLine($"{actor.PlayerName} say: {greeting}");
-
-        return Task.FromResult("gggg");
+    
+    
+        return "GGG";
+        // return Task.FromResult("gggg");
     }
     
     public static async Task<string> SayHello2(string greeting)
