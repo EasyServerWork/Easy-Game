@@ -41,13 +41,16 @@ public abstract class BaseActor
     protected string? ServiceName { get; private set; }
 
     // private ServiceSource _source;
-
+    
+    public CustomKey Key { get; internal set; }
 
     public BaseActor()
     {
         Logger = LoggerManager.CreateLogger(GetType());
         _responseHandler = new ResponseHandler(Logger);
     }
+    
+    
     
     /// <summary>
     /// 消息处理循环，每一个Actor会有一个，这里接收的是Actor的入口方法消息

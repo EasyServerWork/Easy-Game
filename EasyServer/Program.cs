@@ -1,23 +1,40 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using EasyServer.ActorExample;
-using EasyServer.Registry;
-using ExampleUsage = EasyServer.Log.ExampleUsage;
+
+using EasyServer.Core;
 
 
-HotfixManager hotfix = new HotfixManager();
+HotfixManager hotfix = new HotfixManager(@"C:\OpenSourceWork\Easy-Game\Server.Hotfix\bin\Debug\net9.0\Server.Hotfix.dll");
 
-hotfix.RegisterInterfaceImpl("IHelloActor", typeof(HelloAutoImpl));
+hotfix.Load();
 
-var actor = new HelloActorModel();
-var actorProxy = hotfix.CreateInterfaceObject<IHelloActor>("IHelloActor", actor);
+GlobalContext.Hotfix = hotfix;
 
+Type exampleType = hotfix.GetType("Server.Hotfix.ActorDemo.Example");
 
-actorProxy.SayHello("ggggg");
+var method = exampleType.GetMethod("Run");
+Task task = (Task)method.Invoke(null, null);
 
+await task;
 
+// ActorManager manager = new ActorManager();
+// manager.GetActor<IPlayer>()
 
-ExampleUsage.RunExample();
+//C:\OpenSourceWork\Easy-Game\Server.Hotfix\bin\Debug\net9.0\Server.Hotfix.dll
+
+// HotfixManager hotfix = new HotfixManager();
+
+// hotfix.RegisterInterfaceImpl("IHelloActor", typeof(HelloAutoImpl));
+//
+// var actor = new HelloActorModel();
+// var actorProxy = hotfix.CreateInterfaceObject<IHelloActor>("IHelloActor", actor);
+//
+//
+// actorProxy.SayHello("ggggg");
+//
+//
+//
+// ExampleUsage.RunExample();
 
 // var config = RegistryConfig.CreateFromUri("etcd://127.0.0.1:2379?secure=false&prefixs=/u1,/u2");
 //

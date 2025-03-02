@@ -24,4 +24,23 @@ public static class Utils
         // 截取前length个字符
         return guidString.Substring(0, length);
     }
+    
+    /// <summary>
+    /// 检查类型是否是baseType的子类
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="baseType"></param>
+    /// <returns></returns>
+    public static bool IsDerivedFromOrSame(Type type, Type baseType)
+    {
+        while (type != null)
+        {
+            if (type == baseType)
+            {
+                return true;
+            }
+            type = type.BaseType;
+        }
+        return false;
+    }
 }

@@ -1,6 +1,8 @@
-﻿namespace Server.Model.ActorDemo;
+﻿using EasyServer.Core;
 
-public class PlayerModel
+namespace Server.Model.ActorDemo;
+
+public class PlayerModel : BaseActor
 {
     public long PlayerId { get; set; }
     public string PlayerName { get; set; }
